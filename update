@@ -1,0 +1,110 @@
+#!/bin/bash
+set -e
+#set -x
+
+BASE_DIR="/var/www/drupal/sites/all/modules"
+MODULE_FILE="/vagrant/islandora-module-list-sans-tuque.txt"
+
+usage () {
+  echo "Usage "`basename $0`": (-p | -f | -b <branch>)"
+  echo "  -p            : pull new updates to the current branch"
+  echo "  -f            : fetches updates and new branches"
+  echo "  -b (<branch>) : list branches or check out <branch>"
+}
+
+git_list_branch () {
+  git branch
+}
+
+git_pull () {
+  sudo git reset --hard
+  sudo git pull
+}
+
+git_fetch () {
+  sudo git fetch origin
+}
+
+git_checkout () {
+  BRANCH=$1
+
+  # This slows it down, but is kind of im
+  git_fetch
+
+  # List the branches we have
+  CURRENT=$(git branch)
+  # Strip the *s
+  CURRENT=$(echo "$CURRENT" | sed 's/\*//g')
+ 
+  # Loop on newline
+  while IFS=$'\n' read -ra ADDR; do
+      for i in "${ADDR[@]}"; do
+        # Strip leading and trailing spaces
+        i=$(echo "$i" | sed 's/^\s*\b//' | sed 's/\b\s*$//')
+        # if we have a match, then just checkout the branch
+        if [ "$BRANCH" = "$i" ]; then
+          sudo git checkout ${BRANCH}
+          return
+        fi
+      done
+  done <<< "$CURRENT"
+
+  # If you have changes you can't switch branches.
+  # Eventually a switch here might be a good idea?
+  #sudo git reset --hard
+
+  # Otherwise check it out from origin
+  sudo git checkout -b ${BRANCH} origin/${BRANCH}
+}
+
+# We only accept 1 or 2 arguments
+if [ $# -lt 1 -o $# -gt 2 ]; then
+  usage
+  exit 1
+fi
+
+# Parse arguments
+if [ $# -eq 1 ]; then
+  if [ "$1" = "-b" ]; then
+    ACTION="list_branch"
+  elif [ $# -eq 2 -a "$1" != "-p" ]; then
+    echo "Error: unknown argument"
+    usage
+    exit 3
+  elif [ "$1" = '-f' ]; then
+    ACTION="fetch"
+  elif [ "$1" = '-p' ]; then
+    ACTION="pull"
+  else
+    usage
+    exit 0
+  fi
+else
+  if [ "$1" = "-p" ]; then
+    echo "-p does not take any other arguments, perhaps you meant -b?"
+    usage
+    exit 4
+  elif [ "$1" != "-b" ]; then
+    echo "Error: unknown argument"
+    usage
+    exit 3
+  else
+    ACTION="checkout"
+    BRANCH="$2"
+  fi
+fi
+
+# Do the loops
+while read -r line; do
+  if [ -d "$BASE_DIR/$line" ]; then
+    echo "Acting on $line"
+    cd "$BASE_DIR/$line"
+    if [ "$ACTION" = "checkout" ]; then
+      git_checkout ${BRANCH}
+    else
+      git_$ACTION
+    fi
+  fi
+done < $MODULE_FILE
+
+exit 0
