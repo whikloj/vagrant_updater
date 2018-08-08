@@ -10,6 +10,8 @@ usage () {
   echo "  -p            : pull new updates to the current branch"
   echo "  -f            : fetches updates and new branches"
   echo "  -b (<branch>) : list branches or check out <branch>"
+  echo "  -q <file>     : archive current commits to file <file>"
+  echo "  -r <file>     : revert to commits in backup <file>"
 }
 
 git_list_branch () {
@@ -57,6 +59,20 @@ git_checkout () {
   sudo git checkout -b ${BRANCH} origin/${BRANCH}
 }
 
+git_archive () {
+  local FILE=$1
+  local HASH=$(git rev-parse HEAD)
+  echo "$PWD $HASH" >> $FILE
+}
+
+git_revert () {
+  local LFILE=$1
+  local LINE=$(grep -e "$PWD " $LFILE)
+  local HASH=$(echo "$LINE" | cut -d' ' -f2)
+  echo "Reverting to hash $HASH"
+  sudo git checkout -q ${HASH}
+}
+
 # We only accept 1 or 2 arguments
 if [ $# -lt 1 -o $# -gt 2 ]; then
   usage
@@ -84,13 +100,20 @@ else
     echo "-p does not take any other arguments, perhaps you meant -b?"
     usage
     exit 4
-  elif [ "$1" != "-b" ]; then
+  elif [ "$1" = '-r' ]; then
+    ACTION="revert"
+    FILE="$2"
+  elif [ "$1" = '-a' ]; then
+    ACTION="archive"
+    FILE="$2"
+    echo "Writing hashes to $FILE"
+  elif [ "$1" = "-b" ]; then
+    ACTION="checkout"
+    BRANCH="$2"
+  else
     echo "Error: unknown argument"
     usage
     exit 3
-  else
-    ACTION="checkout"
-    BRANCH="$2"
   fi
 fi
 
@@ -101,6 +124,8 @@ while read -r line; do
     cd "$BASE_DIR/$line"
     if [ "$ACTION" = "checkout" ]; then
       git_checkout ${BRANCH}
+    elif [ "$ACTION" = "archive" -o "$ACTION" = "revert" ]; then
+      git_$ACTION ${FILE}
     else
       git_$ACTION
     fi
