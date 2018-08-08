@@ -13,6 +13,8 @@ Usage update: (-p | -f | -b <branch>)
   -p            : pull new updates to the current branch
   -f            : fetches updates and new branches
   -b (<branch>) : list branches or check out <branch>
+  -a <file>     : archive current commits to file <file>
+  -r <file>     : revert to commits in backup <file>
 ```
 
 This script is generally meant to be used in the context of [islandora_vagrant](https://github.com/Islandora-Labs/islandora_vagrant.git). It assumes that the remote **origin** is the Islandora remote. It cycles through all the files in the **islandora-modules-sans-tuque.txt** and executes the command you specified.
