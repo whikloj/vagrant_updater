@@ -2,15 +2,17 @@
 set -e
 #set -x
 
+# Base Drupal module directory, edit as needed.
 BASE_DIR="/var/www/drupal/sites/all/modules"
+# Module list, edit as needed.
 MODULE_FILE="/vagrant/islandora-module-list-sans-tuque.txt"
 
 usage () {
-  echo "Usage "`basename $0`": (-p | -f | -b <branch>)"
+  echo "Usage "`basename $0`": (-p | -f | -b <branch> | -a <file> | -r <file>)"
   echo "  -p            : pull new updates to the current branch"
   echo "  -f            : fetches updates and new branches"
   echo "  -b (<branch>) : list branches or check out <branch>"
-  echo "  -q <file>     : archive current commits to file <file>"
+  echo "  -a <file>     : archive current commits to file <file>"
   echo "  -r <file>     : revert to commits in backup <file>"
 }
 
